@@ -1,0 +1,75 @@
+========================================
+DISPOSITIVO: R2
+ROL: Router central (Core)
+FUNCIONES:
+- Servidor DHCP para todas las VLANs
+- Enrutamiento estático hacia todas las redes
+- Interconexión WAN con R1, R3 y R4
+========================================
+
+DESCRIPCIÓN:
+R2 actúa como el router principal de la red. Se encarga de asignar direcciones IP dinámicamente
+a todas las VLANs mediante DHCP. También maneja el enrutamiento entre redes.
+
+CONFIGURACIÓN:
+
+enable
+configure terminal
+hostname R2
+
+! Interfaces WAN
+interface Gig0/1
+ ip address 192.168.100.2 255.255.255.252
+ no shutdown
+ exit
+
+interface Serial0/0/0
+ ip address 192.168.100.10 255.255.255.252
+ clock rate 64000
+ no shutdown
+ exit
+
+interface Serial0/0/1
+ ip address 192.168.100.6 255.255.255.252
+ clock rate 64000
+ no shutdown
+ exit
+
+! Exclusión de IPs (gateways y dispositivos críticos)
+ip dhcp excluded-address 192.168.30.1 192.168.30.10
+ip dhcp excluded-address 192.168.50.1 192.168.50.10
+ip dhcp excluded-address 192.168.99.1 192.168.99.10
+ip dhcp excluded-address 192.168.32.1 192.168.32.14
+
+! Pools DHCP
+ip dhcp pool VLAN300
+ network 192.168.30.0 255.255.255.0
+ default-router 192.168.30.1
+ dns-server 192.168.32.5
+ exit
+
+ip dhcp pool VLAN500
+ network 192.168.50.0 255.255.255.0
+ default-router 192.168.50.1
+ dns-server 192.168.32.5
+ exit
+
+ip dhcp pool VLAN999
+ network 192.168.99.0 255.255.255.0
+ default-router 192.168.99.1
+ dns-server 192.168.32.5
+ exit
+
+! Rutas estáticas
+ip route 192.168.30.0 255.255.255.0 192.168.100.5
+ip route 192.168.50.0 255.255.255.0 192.168.100.5
+ip route 192.168.99.0 255.255.255.0 192.168.100.5
+
+ip route 192.168.30.0 255.255.255.0 192.168.100.9
+ip route 192.168.50.0 255.255.255.0 192.168.100.9
+ip route 192.168.99.0 255.255.255.0 192.168.100.9
+
+ip route 192.168.32.0 255.255.255.0 192.168.100.5
+
+end
+write memory

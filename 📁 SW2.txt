@@ -1,0 +1,73 @@
+========================================
+DISPOSITIVO: SW2
+ROL: Switch de acceso secundario
+FUNCIONES:
+- Conectar dispositivos finales (VLAN 300)
+- Trunk hacia R4
+- EtherChannel con SW1 (LACP passive)
+========================================
+
+DESCRIPCIÓN:
+SW2 conecta los equipos de la VLAN de estudiantes y mantiene redundancia
+con SW1 mediante EtherChannel. Sigue a SW1 como root en STP.
+
+CONFIGURACIÓN:
+
+enable
+configure terminal
+hostname SW2
+
+! --- Crear VLANs ---
+vlan 300
+ name Estudiantes
+ exit
+vlan 500
+ name Academicos
+ exit
+vlan 999
+ name Nativa-Administrativa
+ exit
+
+! --- Puertos acceso VLAN 300 ---
+interface range FastEthernet0/5, FastEthernet0/6, FastEthernet0/20
+ switchport mode access
+ switchport access vlan 300
+ spanning-tree portfast
+ no shutdown
+ exit
+
+! --- Trunk hacia R4 ---
+interface GigabitEthernet0/2
+ switchport mode trunk
+ switchport trunk native vlan 999
+ switchport trunk allowed vlan 300,500,999
+ no shutdown
+ exit
+
+! --- EtherChannel hacia SW1 (LACP PASSIVE) ---
+interface range FastEthernet0/23-24
+ switchport mode trunk
+ switchport trunk native vlan 999
+ switchport trunk allowed vlan 300,500,999
+ channel-protocol lacp
+ channel-group 1 mode passive
+ no shutdown
+ exit
+
+interface Port-channel1
+ switchport mode trunk
+ switchport trunk native vlan 999
+ switchport trunk allowed vlan 300,500,999
+ no shutdown
+ exit
+
+! --- IP de gestión ---
+interface vlan 999
+ ip address 192.168.99.11 255.255.255.0
+ no shutdown
+ exit
+
+ip default-gateway 192.168.99.1
+
+end
+write memory

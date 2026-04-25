@@ -1,0 +1,58 @@
+========================================
+DISPOSITIVO: SW1
+ROL: Switch principal (Core)
+FUNCIONES:
+- Manejo de VLANs
+- STP Root
+- EtherChannel LACP activo
+========================================
+
+DESCRIPCIÓN:
+SW1 es el switch principal de la red. Se encarga de administrar VLANs,
+crear enlaces redundantes y evitar bucles mediante STP.
+
+CONFIGURACIÓN:
+
+enable
+configure terminal
+hostname SW1
+
+vlan 300
+ name Estudiantes
+ exit
+
+vlan 500
+ name Academicos
+ exit
+
+vlan 999
+ name Administrativa
+ exit
+
+interface range FastEthernet0/9, FastEthernet0/17
+ switchport mode access
+ switchport access vlan 500
+ spanning-tree portfast
+ no shutdown
+ exit
+
+interface GigabitEthernet0/2
+ switchport mode trunk
+ switchport trunk native vlan 999
+ switchport trunk allowed vlan 300,500,999
+ no shutdown
+ exit
+
+! EtherChannel
+interface range FastEthernet0/23-24
+ channel-group 1 mode active
+ no shutdown
+ exit
+
+! STP Root
+spanning-tree vlan 300 root primary
+spanning-tree vlan 500 root primary
+spanning-tree vlan 999 root primary
+
+end
+write memory

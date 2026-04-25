@@ -1,0 +1,59 @@
+========================================
+DISPOSITIVO: R4
+ROL: Router principal de acceso
+FUNCIONES:
+- Inter-VLAN Routing
+- HSRP Activo (Gateway principal)
+========================================
+
+DESCRIPCIÓN:
+R4 es el router principal que actúa como gateway activo usando HSRP.
+Si falla, R1 toma el control automáticamente.
+
+CONFIGURACIÓN:
+
+enable
+configure terminal
+hostname R4
+
+interface Serial0/0/0
+ ip address 192.168.100.9 255.255.255.252
+ no shutdown
+ exit
+
+interface Gig0/1
+ no ip address
+ no shutdown
+ exit
+
+interface Gig0/1.300
+ encapsulation dot1Q 300
+ ip address 192.168.30.3 255.255.255.0
+ ip helper-address 192.168.100.10
+ standby 1 ip 192.168.30.1
+ standby 1 priority 110
+ standby 1 preempt
+ exit
+
+interface Gig0/1.500
+ encapsulation dot1q 500
+ ip address 192.168.50.3 255.255.255.0
+ ip helper-address 192.168.100.10
+ standby 2 ip 192.168.50.1
+ standby 2 priority 110
+ standby 2 preempt
+ exit
+
+interface Gig0/1.999
+ encapsulation dot1q 999 native
+ ip address 192.168.99.3 255.255.255.0
+ ip helper-address 192.168.100.10
+ standby 3 ip 192.168.99.1
+ standby 3 priority 110
+ standby 3 preempt
+ exit
+
+ip route 0.0.0.0 0.0.0.0 192.168.100.10
+
+end
+write memory

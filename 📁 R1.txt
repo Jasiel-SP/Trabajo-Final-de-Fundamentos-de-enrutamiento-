@@ -13,51 +13,94 @@ Trabaja con HSRP como respaldo (standby) en caso de falla de R4.
 
 CONFIGURACIÓN:
 
+! R2 — DHCP + WAN
+! Configura primero porque todos dependen de él
+! ================================================
 enable
 configure terminal
-hostname R1
+hostname R2
 
+! --- Interfaz hacia R3 (WAN hacia R1) ---
 interface Gig0/1
- ip address 192.168.100.1 255.255.255.252
+ ip address 192.168.100.2 255.255.255.252
  no shutdown
  exit
 
-interface Gig0/0
- no ip address
+! --- Serial hacia R4 (DCE = clock rate) ---
+interface Serial0/0/0
+ ip address 192.168.100.10 255.255.255.252
+ clock rate 64000
  no shutdown
  exit
 
-! VLAN 300
-interface Gig0/0.300
- encapsulation dot1q 300
- ip address 192.168.30.2 255.255.255.0
- ip helper-address 192.168.100.6
- standby 1 ip 192.168.30.1
- standby 1 priority 90
- standby 1 preempt
+! --- Serial hacia R3 (DCE = clock rate) ---
+interface Serial0/0/1
+ ip address 192.168.100.6 255.255.255.252
+ clock rate 64000
+ no shutdown
  exit
 
-! VLAN 500
-interface Gig0/0.500
- encapsulation dot1q 500
- ip address 192.168.50.2 255.255.255.0
- ip helper-address 192.168.100.6
- standby 2 ip 192.168.50.1
- standby 2 priority 90
- standby 2 preempt
+! --- DHCP: excluir IPs de routers y gateways ---
+ip dhcp excluded-address 192.168.30.1 192.168.30.10
+ip dhcp excluded-address 192.168.50.1 192.168.50.10
+ip dhcp excluded-address 192.168.99.1 192.168.99.10
+ip dhcp excluded-address 192.168.32.1 192.168.32.14
+
+! --- Pool VLAN 300 - Estudiantes ---
+ip dhcp pool VLAN300
+ network 192.168.30.0 255.255.255.0
+ default-router 192.168.30.1
+ dns-server 192.168.32.5
  exit
 
-! VLAN 999
-interface Gig0/0.999
- encapsulation dot1q 999 native
- ip address 192.168.99.2 255.255.255.0
- ip helper-address 192.168.100.6
- standby 3 ip 192.168.99.1
- standby 3 priority 90
- standby 3 preempt
+! --- Pool VLAN 500 - Académicos ---
+ip dhcp pool VLAN500
+ network 192.168.50.0 255.255.255.0
+ default-router 192.168.50.1
+ dns-server 192.168.32.5
  exit
 
-ip route 0.0.0.0 0.0.0.0 192.168.100.2
+! --- Pool VLAN 999 - Administrativa ---
+ip dhcp pool VLAN999
+ network 192.168.99.0 255.255.255.0
+ default-router 192.168.99.1
+ dns-server 192.168.32.5
+ exit
+
+! --- Rutas hacia VLANs de R1 (via R3 = .5) ---
+ip route 192.168.30.0 255.255.255.0 192.168.100.5
+ip route 192.168.50.0 255.255.255.0 192.168.100.5
+ip route 192.168.99.0 255.255.255.0 192.168.100.5
+! --- Rutas hacia VLANs de R4 (directo = .9) ---
+ip route 192.168.30.0 255.255.255.0 192.168.100.9
+ip route 192.168.50.0 255.255.255.0 192.168.100.9
+ip route 192.168.99.0 255.255.255.0 192.168.100.9
+! --- Ruta hacia LAN 192.168.32.0 via R3 ---
+ip route 192.168.32.0 255.255.255.0 192.168.100.5
+
+! ================= SSH =================
+ip domain-name campus.local
+crypto key generate rsa general-keys modulus 1024
+ip ssh version 2
+
+username 2025-2164 privilege 1 secret Fe2024
+username opelegrino privilege 15 secret Fe2024
+
+enable secret Fe2024
+
+line console 0
+ password Fe2024
+ login
+ exit
+
+line vty 0 4
+ transport input ssh
+ login local
+ exit
+
+service password-encryption
+! =======================================
 
 end
 write memory
+
